@@ -5,9 +5,6 @@ defmodule GameNetworkingSockets.ExSocketManager.SocketServer do
   alias GameNetworkingSockets.ExSocketManager.Struct.SocketServerState, as: SSS
   alias GameNetworkingSockets.Socket
 
-  # Idle time until genserver eliminates itself
-  @default_server_ttl :timer.hours(2)
-
   def start_link([], opts) do
     GenServer.start_link(
       __MODULE__,
@@ -33,15 +30,12 @@ defmodule GameNetworkingSockets.ExSocketManager.SocketServer do
       name: Keyword.fetch!(opts, :name),
       ip: Keyword.fetch!(opts, :ip),
       port: Keyword.fetch!(opts, :port),
-      poll: Keyword.fetch!(opts, :poll),
-      timeout: Keyword.get(opts, :timeout, @default_server_ttl)
+      poll: Keyword.fetch!(opts, :poll)
     }
   end
 
   @impl true
-  def init(%SSS{timeout: timeout, ip: ip, port: port, poll: poll} = state) do
-    :timer.send_after(timeout, :server_timeout)
-
+  def init(%SSS{ip: ip, port: port, poll: poll} = state) do
     Global.init!()
 
     {:ok, server} = Socket.listen(ip, port)
@@ -85,7 +79,7 @@ defmodule GameNetworkingSockets.ExSocketManager.SocketServer do
       end
     end
 
-    messages = Socket.receive_messages_on_poll_group(server.poll_group)
+    messages = Socket.receive_messages_on_poll_group(server.poll_group, 10000)
 
     if length(messages) > 0 do
       IO.puts("Server received #{length(messages)} message(s)")
@@ -98,12 +92,6 @@ defmodule GameNetworkingSockets.ExSocketManager.SocketServer do
     :timer.send_after(poll, :poll)
 
     {:noreply, state}
-  end
-
-  def handle_info(:server_timeout, state) do
-    Global.kill()
-    
-    {:stop, :normal, state}
   end
 
   def handle_info(_, state), do: state

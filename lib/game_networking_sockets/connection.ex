@@ -68,6 +68,7 @@ defmodule GameNetworkingSockets.Connection do
   """
   def configure_lanes(conn, lanes) when is_list(lanes) do
     {priorities, weights} = Enum.unzip(lanes)
+    
     Nif.configure_connection_lanes(conn, priorities, weights)
   end
 end

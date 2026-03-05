@@ -15,11 +15,17 @@ defmodule GameNetworkingSockets.Socket do
 
   alias GameNetworkingSockets.Nif
 
-  # Send flag constants matching GNS k_nSteamNetworkingSend_* values
+  @doc "Send flag constants matching GNS k_nSteamNetworkingSend_* values"
   def send_unreliable, do: 0
   def send_reliable, do: 8
   def send_no_nagle, do: 1
   def send_no_delay, do: 4
+
+  @doc "convenience to send by atom descriptor"
+  def send(:unreliable), do: send_unreliable()
+  def send(:reliable), do: send_reliable()
+  def send(:no_nagle), do: send_no_nagle()
+  def send(:no_delay), do: send_no_delay()
 
   @doc """
   Create a listen socket (server) bound to the given IP and port.
@@ -112,7 +118,8 @@ defmodule GameNetworkingSockets.Socket do
 
   ## Example
 
-      GameNetworkingSockets.Socket.send(conn, "hello", GameNetworkingSockets.Socket.send_reliable())
+    iex> Socket.send(conn, "hello there", Socket.send_reliable())
+    {:ok, 1}
   """
   def send(conn, data, flags) when is_binary(data) do
     Nif.send_message_to_connection(conn, data, flags)

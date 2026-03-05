@@ -3,10 +3,7 @@ defmodule GameNetworkingSockets.ExSocketManager.ClientServer do
 
   alias GameNetworkingSockets.Global
   alias GameNetworkingSockets.ExSocketManager.Struct.SocketClientState, as: SCS
-  alias GameNetworkingSockets.Socket
-
-  # Idle time until genserver eliminates itself
-  @default_server_ttl :timer.hours(1)
+  alias GameNetworkingSockets.{Connection, Socket}
 
   def start_link([], opts) do
     GenServer.start_link(
@@ -33,21 +30,15 @@ defmodule GameNetworkingSockets.ExSocketManager.ClientServer do
       name: Keyword.fetch!(opts, :name),
       ip: Keyword.fetch!(opts, :ip),
       port: Keyword.fetch!(opts, :port),
-      poll: Keyword.fetch!(opts, :poll),
-      timeout: Keyword.get(opts, :timeout, @default_server_ttl)
+      poll: Keyword.fetch!(opts, :poll)
     }
   end
 
   @impl true
-  def init(%SCS{timeout: timeout, ip: ip, port: port, poll: poll} = state) do
-    :timer.send_after(timeout, :server_timeout)
-
+  def init(%SCS{ip: ip, port: port, poll: poll} = state) do
     Global.init!()
 
     {:ok, conn} = GameNetworkingSockets.Socket.connect(ip, port)
-
-    # TODO: send message handle async
-    #{:ok, msg_num} = Socket.send(client_conn, "hello from elixir!", Socket.send_reliable())
 
     :timer.send_after(poll, :poll)
 
@@ -59,24 +50,33 @@ defmodule GameNetworkingSockets.ExSocketManager.ClientServer do
     {:reply, state, state}
   end
 
-  def handle_call(:net_stats, _from, state) do
-    # TODO
-    {:reply, state, state}
+  def handle_call(:status, _from, %{conn: conn} = state) do
+    {:reply, Connection.get_real_time_status(conn), state}
   end
 
   @impl true
-  def handle_info(:poll, %{poll: poll, server: server} = state) do
+  def handle_cast({send_type, msg}, %{conn: conn, sent: sent} = state) do
+    case Socket.send(conn, msg, Socket.send(send_type)) do
+      {:ok, _msg_number} ->
+        {:noreply, Map.put(state, :sent, sent + 1)}
+      {:error, _error_number} ->
+        {:noreply, state}
+    end
+  end
+
+  @impl true
+  def handle_info(:poll, %{conn: conn, poll: poll} = state) do
     Global.poll_callbacks()
+
+    messages = Socket.receive_messages(conn)
+
+    for message <- messages do
+      IO.puts(message.payload)
+    end
 
     :timer.send_after(poll, :poll)
 
     {:noreply, state}
-  end
-
-  def handle_info(:server_timeout, state) do
-    Global.kill()
-    
-    {:stop, :normal, state}
   end
 
   def handle_info(_, state), do: state
