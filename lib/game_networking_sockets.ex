@@ -34,9 +34,10 @@ defmodule GameNetworkingSockets do
   - `GameNetworkingSockets.Connection` — connection info and real-time status
   - `GameNetworkingSockets.Nif` — raw NIF bindings (internal)
   """
-  alias GameNetworkingSockets.ExSocketManager.SocketSupervisor
+  alias GameNetworkingSockets.ExSocketManager.{ClientSupervisor, SocketSupervisor}
 
   @default_server_opts name: :socket_server, poll: 500, ip: "0.0.0.0", port: 27015
+  @default_client_opts poll: 500, ip: "127.0.0.1", port: 27015
 
   @doc """
   Start a GenServer that can respond to Socket requests and maintain a poll
@@ -50,4 +51,30 @@ defmodule GameNetworkingSockets do
   def start_server(opts \\ []) do
     SocketSupervisor.start_child(Keyword.merge(@default_server_opts, opts))
   end
+
+  @doc """
+  Start a GenServer to host client connection details and provide interface
+  to prompt actions or query stats from client
+
+  Opts
+    * poll: millisecond polling interval
+    * name: atom server name (needs be unique)
+    * ip: address to connect socket
+    * port: port to connect socket
+  """
+  def start_client(opts \\ []) do
+    @default_client_opts
+    |> maybe_generate_name(Keyword.get(opts, :name))
+    |> Keyword.merge(opts)
+    |> ClientSupervisor.start_child()
+  end
+
+  # PRIVATE FUNCTIONS
+  ###################
+  defp maybe_generate_name(opts, nil) do
+    # TODO: will replace rand with global Registry
+    Keyword.put(opts, :name, :"client_#{:rand.uniform(100000)}")
+  end
+
+  defp maybe_generate_name(opts, _name), do: opts
 end
