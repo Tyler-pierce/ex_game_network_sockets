@@ -34,15 +34,15 @@ defmodule GameNetworkingSockets do
   - `GameNetworkingSockets.Connection` — connection info and real-time status
   - `GameNetworkingSockets.Nif` — raw NIF bindings (internal)
   """
-  alias GameNetworkSockets.ExSocketManager.SocketSupervisor
+  alias GameNetworkingSockets.ExSocketManager.SocketSupervisor
 
-  @default_server_opts name: :socket_server, poll: 500, ip: "127.0.0.1", port: 27015
+  @default_server_opts name: :socket_server, poll: 500, ip: "0.0.0.0", port: 27015
 
   @doc """
   Start a GenServer that can respond to Socket requests and maintain a poll
 
   Opts
-    * poll: microsecond polling interval
+    * poll: millisecond polling interval
     * name: atom server name (needs be unique)
     * ip: address to connect socket
     * port: port to connect socket

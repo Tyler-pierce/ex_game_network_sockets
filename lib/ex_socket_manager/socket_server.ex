@@ -1,8 +1,9 @@
-defmodule GameNetworkSockets.ExSocketManager.SocketServer do
-  use GenServer, restart: :temporary
+defmodule GameNetworkingSockets.ExSocketManager.SocketServer do
+  use GenServer, restart: :transient
 
   alias GameNetworkingSockets.Global
-  alias GameNetworkSockets.ExSocketManager.Struct.SocketServerState, as: SSS
+  alias GameNetworkingSockets.ExSocketManager.Struct.SocketServerState, as: SSS
+  alias GameNetworkingSockets.Socket
 
   # Idle time until genserver eliminates itself
   @default_server_ttl :timer.hours(2)
@@ -38,12 +39,16 @@ defmodule GameNetworkSockets.ExSocketManager.SocketServer do
   end
 
   @impl true
-  def init(%SSS{timeout: timeout} = state) do
+  def init(%SSS{timeout: timeout, ip: ip, port: port, poll: poll} = state) do
     :timer.send_after(timeout, :server_timeout)
 
     Global.init!()
 
-    {:ok, state}
+    {:ok, server} = Socket.listen(ip, port)
+
+    :timer.send_after(poll, :poll)
+
+    {:ok, Map.put(state, :server, server)}
   end
 
   @impl true
@@ -52,6 +57,49 @@ defmodule GameNetworkSockets.ExSocketManager.SocketServer do
   end
 
   @impl true
+  def handle_info(:poll, %{poll: poll, server: server} = state) do
+    Global.poll_callbacks()
+
+    for event <- Global.poll_connection_status_changes() do
+      case {event.old_state, event.new_state} do
+        {0, 1} ->
+          # New incoming connection — accept it
+          Socket.accept(event.conn, server.poll_group)
+
+        {1, 3} ->
+          # Connection fully established
+          IO.puts("Client #{event.conn} connected")
+
+        {_, 4} ->
+          # Closed by peer
+          IO.puts("Closed by peer")
+          Socket.close_connection(event.conn)
+
+        {_, 5} ->
+          # Problem detected locally
+          IO.puts("Problem detected locally")
+          Socket.close_connection(event.conn)
+
+        _ ->
+          :ok
+      end
+    end
+
+    messages = Socket.receive_messages_on_poll_group(server.poll_group)
+
+    if length(messages) > 0 do
+      IO.puts("Server received #{length(messages)} message(s)")
+
+      for msg <- messages do
+        IO.puts("payload: #{inspect(msg.payload)}")
+      end
+    end
+
+    :timer.send_after(poll, :poll)
+
+    {:noreply, state}
+  end
+
   def handle_info(:server_timeout, state) do
     Global.kill()
     

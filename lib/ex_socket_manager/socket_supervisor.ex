@@ -1,7 +1,7 @@
-defmodule GameNetworkSockets.ExSocketManager.SocketSupervisor do
+defmodule GameNetworkingSockets.ExSocketManager.SocketSupervisor do
   use DynamicSupervisor
 
-  alias GameNetworkSockets.ExSocketManager.SocketServer
+  alias GameNetworkingSockets.ExSocketManager.SocketServer
 
   def start_link([{:name, name}]) do
     DynamicSupervisor.start_link(__MODULE__, [], name: name)

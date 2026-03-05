@@ -3,7 +3,7 @@ defmodule GameNetworkingSockets.Application do
 
   use Application
 
-  alias GameNetworkSockets.ExSocketManager.SocketSupervisor
+  alias GameNetworkingSockets.ExSocketManager.SocketSupervisor
 
   @impl true
   def start(_type, _args) do
@@ -16,7 +16,7 @@ defmodule GameNetworkingSockets.Application do
     ])
 
     children = [
-      {SocketSupervisor, name: GameNetworkSockets.ExSocketManager.SocketSupervisor}
+      {SocketSupervisor, name: GameNetworkingSockets.ExSocketManager.SocketSupervisor}
     ]
 
     opts = [strategy: :one_for_one, name: GameNetworkingSockets.Supervisor]
