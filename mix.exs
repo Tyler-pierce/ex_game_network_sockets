@@ -24,7 +24,8 @@ defmodule GameNetworkingSockets.MixProject do
   defp deps do
     [
       {:elixir_make, "~> 0.8", runtime: false},
-      {:syn, "~> 3.4"}
+      {:syn, "~> 3.4"},
+      {:libcluster, "~> 3.5"}
     ]
   end
 end
