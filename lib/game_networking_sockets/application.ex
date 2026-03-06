@@ -3,7 +3,7 @@ defmodule GameNetworkingSockets.Application do
 
   use Application
 
-  alias GameNetworkingSockets.ExSocketManager.{SocketSupervisor, ClientSupervisor}
+  alias GameNetworkingSockets.ExSocketManager.{ObserverService, SocketSupervisor, ClientSupervisor}
 
   @impl true
   def start(_type, _args) do
@@ -12,15 +12,14 @@ defmodule GameNetworkingSockets.Application do
 
     # Add scopes that will be in the cluster process dictionary
     :syn.add_node_to_scopes([
-      :socket_servers,
-      :client_servers,
       :observers
     ])
 
     children = [
       {Cluster.Supervisor, [cluster_topology(), [name: GameNetworkingSockets.ClusterSupervisor]]},
       {SocketSupervisor, name: GameNetworkingSockets.ExSocketManager.SocketSupervisor},
-      {ClientSupervisor, name: GameNetworkingSockets.ExSocketManager.ClientSupervisor}
+      {ClientSupervisor, name: GameNetworkingSockets.ExSocketManager.ClientSupervisor},
+      {ObserverService, []}
     ]
 
     opts = [strategy: :one_for_one, name: GameNetworkingSockets.Supervisor]

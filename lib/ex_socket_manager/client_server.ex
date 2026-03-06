@@ -9,17 +9,8 @@ defmodule GameNetworkingSockets.ExSocketManager.ClientServer do
     GenServer.start_link(
       __MODULE__,
       to_state(opts),
-      name: name(Keyword.fetch!(opts, :name))
+      name: Keyword.fetch!(opts, :name)
     )
-  end
-
-  @doc """
-  Fetch process dictionary name of server
-  """
-  def name(%SCS{name: name}), do: name(name)
-
-  def name(name) do
-    {:via, :syn, {:client_servers, name}}
   end
 
   @doc """

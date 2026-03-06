@@ -5,21 +5,14 @@ defmodule GameNetworkingSockets.ExSocketManager.SocketServer do
   alias GameNetworkingSockets.ExSocketManager.Struct.SocketServerState, as: SSS
   alias GameNetworkingSockets.Socket
 
+  @default_msgs_per_poll 2000
+
   def start_link([], opts) do
     GenServer.start_link(
       __MODULE__,
       to_state(opts),
-      name: name(Keyword.fetch!(opts, :name))
+      name: Keyword.fetch!(opts, :name)
     )
-  end
-
-  @doc """
-  Fetch process dictionary name of server
-  """
-  def name(%SSS{name: name}), do: name(name)
-
-  def name(name) do
-    {:via, :syn, {:socket_servers, name}}
   end
 
   @doc """
@@ -51,51 +44,61 @@ defmodule GameNetworkingSockets.ExSocketManager.SocketServer do
   end
 
   @impl true
-  def handle_info(:poll, %{poll: poll, server: server} = state) do
+  def handle_info(:poll, state) do
     Global.poll_callbacks()
-
-    for event <- Global.poll_connection_status_changes() do
-      case {event.old_state, event.new_state} do
-        {0, 1} ->
-          # New incoming connection — accept it
-          Socket.accept(event.conn, server.poll_group)
-
-        {1, 3} ->
-          # Connection fully established
-          IO.puts("Client #{event.conn} connected")
-
-        {_, 4} ->
-          # Closed by peer
-          IO.puts("Closed by peer")
-          Socket.close_connection(event.conn)
-
-        {_, 5} ->
-          # Problem detected locally
-          IO.puts("Problem detected locally")
-          Socket.close_connection(event.conn)
-
-        _ ->
-          :ok
-      end
-    end
-
-    messages = Socket.receive_messages_on_poll_group(server.poll_group, 10000)
-
-    if length(messages) > 0 do
-      IO.puts("Server received #{length(messages)} message(s)")
-
-      for msg <- messages do
-        IO.puts("payload: #{inspect(msg.payload)}")
-      end
-    end
-
-    :timer.send_after(poll, :poll)
-
-    {:noreply, state}
+    
+    state
+    |> poll_connection()
+    |> schedule_poll()
+    |> noreply()
   end
 
   def handle_info(_, state), do: state
 
   # PRIVATE FUNCTIONS
   ###################
+  defp poll_connection(%{server: %{poll_group: poll_group}, clients_connected: clients_connected} = state) do
+    Global.poll_connection_status_changes()
+    |> Enum.reduce(state, fn event, state ->
+      case {event.old_state, event.new_state} do
+        {0, 1} -> # New incoming connection — accept it
+          Socket.accept(event.conn, poll_group)
+
+          state
+
+        {1, 3} -> # Connection accepted
+          Map.put(state, :clients_connected, clients_connected + 1)
+
+        {_, 4} -> # Closed by peer
+          Socket.close_connection(event.conn)
+          Map.put(state, :clients_connected, clients_connected - 1)
+
+        {_, 5} -> # Problem detected locally
+          Socket.close_connection(event.conn)
+          Map.put(state, :clients_connected, clients_connected - 1)
+
+        _ ->
+          state
+      end
+    end)
+    |> process_messages(Socket.receive_messages_on_poll_group(poll_group, @default_msgs_per_poll), 0)
+  end
+
+  defp process_messages(%{messages_received: received} = state, [], amt_processed) do
+    Map.put(state, :messages_received, received + amt_processed)
+  end
+
+  defp process_messages(state, [_msg | t], amt_processed) do
+    # Do something with message (TODO: state can have handler added)
+
+    process_messages(state, t, amt_processed + 1)
+  end
+  
+  defp noreply(state), do: {:noreply, state}
+
+  defp schedule_poll(%{poll: poll} = state) do
+    :timer.send_after(poll, :poll)
+
+    state
+  end
 end

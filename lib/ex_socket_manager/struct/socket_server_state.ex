@@ -7,5 +7,7 @@ defmodule GameNetworkingSockets.ExSocketManager.Struct.SocketServerState do
     server: nil,
     ip: nil,
     port: nil,
-    poll: nil
+    poll: nil,
+    clients_connected: 0,
+    messages_received: 0
 end

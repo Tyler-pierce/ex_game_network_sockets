@@ -49,7 +49,9 @@ defmodule GameNetworkingSockets do
     * port: port to connect socket
   """
   def start_server(opts \\ []) do
-    SocketSupervisor.start_child(Keyword.merge(@default_server_opts, opts))
+    Keyword.merge(@default_server_opts, opts)
+    |> SocketSupervisor.start_child()
+    |> server_added()
   end
 
   @doc """
@@ -67,10 +69,33 @@ defmodule GameNetworkingSockets do
     |> maybe_generate_name(Keyword.get(opts, :name))
     |> Keyword.merge(opts)
     |> ClientSupervisor.start_child()
+    |> client_added()
+  end
+
+  def peek(:observer) do
+    with {pid, _} <- :syn.lookup(:observers, :global) do
+      GenServer.call(pid, :peek)
+    end
   end
 
   # PRIVATE FUNCTIONS
   ###################
+  defp server_added({:ok, pid}) do
+    with {observer_pid, _} <- :syn.lookup(:observers, :global) do
+      GenServer.cast(observer_pid, {:server_added, pid})
+    end
+
+    {:ok, pid}
+  end
+
+  defp client_added({:ok, pid}) do
+    with {observer_pid, _} <- :syn.lookup(:observers, :global) do
+      GenServer.cast(observer_pid, {:client_added, pid})
+    end
+
+    {:ok, pid}
+  end
+
   defp maybe_generate_name(opts, nil) do
     # TODO: will replace rand with global Registry
     Keyword.put(opts, :name, :"client_#{:rand.uniform(100000)}")

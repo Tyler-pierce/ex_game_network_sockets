@@ -4,5 +4,6 @@ defmodule GameNetworkingSockets.ExSocketManager.Struct.ServerObserverState do
   """
 
   defstruct servers: %{},
-    clients: %{}
+    clients: %{},
+    nodes: []
 end

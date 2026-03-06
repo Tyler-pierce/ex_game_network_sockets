@@ -1,7 +1,8 @@
-GameNetworkingSockets.start_server()
+# Example showing OTP working alongside GNS efficiently handling messages
+GameNetworkingSockets.start_server(poll: 10) # 10 millisecond poll
 
-amount_clients = 100
-amount_sends = 10000
+amount_clients = 1000
+amount_sends = 1000000
 
 clients = Enum.reduce(1..100, [], fn _, acc ->
             case GameNetworkingSockets.start_client() do
@@ -20,5 +21,7 @@ clients = Enum.reduce(1..100, [], fn _, acc ->
 end)
 |> Enum.to_list()
 
-# Give time to view receives
+# TODO poll server for messages processed
+
+# Keep script alive to complete IO
 :timer.sleep(5000)
