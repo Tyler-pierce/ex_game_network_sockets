@@ -111,4 +111,81 @@ defmodule GameNetworkingSockets.Connection do
 
     Nif.configure_connection_lanes(conn, priorities, weights)
   end
+
+  # ---------------------------------------------------------------------------
+  # Per-Connection Config
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Set a per-connection config value (integer).
+
+  `key` can be an atom from `GameNetworkingSockets.Global.config_keys/0`
+  or a raw integer enum value.
+
+  ## Examples
+
+      Connection.set_config_int(conn, :nagle_time, 0)
+      Connection.set_config_int(conn, :send_buffer_size, 1_048_576)
+  """
+  def set_config_int(conn, key, value) when is_atom(key) do
+    case Map.fetch(GameNetworkingSockets.Global.config_keys(), key) do
+      {:ok, int_key} -> Nif.set_connection_config_int(conn, int_key, value)
+      :error -> {:error, :unknown_config_key}
+    end
+  end
+
+  def set_config_int(conn, key, value) when is_integer(key) do
+    Nif.set_connection_config_int(conn, key, value)
+  end
+
+  @doc """
+  Set a per-connection config value (float).
+
+  ## Examples
+
+      Connection.set_config_float(conn, :fake_packet_loss_send, 10.0)
+  """
+  def set_config_float(conn, key, value) when is_atom(key) do
+    case Map.fetch(GameNetworkingSockets.Global.config_keys(), key) do
+      {:ok, int_key} -> Nif.set_connection_config_float(conn, int_key, value / 1)
+      :error -> {:error, :unknown_config_key}
+    end
+  end
+
+  def set_config_float(conn, key, value) when is_integer(key) do
+    Nif.set_connection_config_float(conn, key, value / 1)
+  end
+
+  @doc """
+  Set a per-connection config value (string).
+  """
+  def set_config_string(conn, key, value) when is_atom(key) and is_binary(value) do
+    case Map.fetch(GameNetworkingSockets.Global.config_keys(), key) do
+      {:ok, int_key} -> Nif.set_connection_config_string(conn, int_key, String.to_charlist(value))
+      :error -> {:error, :unknown_config_key}
+    end
+  end
+
+  def set_config_string(conn, key, value) when is_integer(key) and is_binary(value) do
+    Nif.set_connection_config_string(conn, key, String.to_charlist(value))
+  end
+
+  @doc """
+  Get the effective config value for this connection.
+
+  Returns `{:ok, value}` if the value is set directly on this connection,
+  or `{:ok, value, :inherited}` if using a value inherited from a higher scope.
+
+  See `GameNetworkingSockets.Global.get_config_value/3` for the general version.
+  """
+  def get_config_value(conn, key) when is_atom(key) do
+    case Map.fetch(GameNetworkingSockets.Global.config_keys(), key) do
+      {:ok, int_key} -> Nif.get_config_value(int_key, 4, conn)
+      :error -> {:error, :unknown_config_key}
+    end
+  end
+
+  def get_config_value(conn, key) when is_integer(key) do
+    Nif.get_config_value(key, 4, conn)
+  end
 end

@@ -1013,6 +1013,131 @@ static ERL_NIF_TERM nif_set_global_config_string(ErlNifEnv *env, int argc, const
 }
 
 // ---------------------------------------------------------------------------
+// NIF: set_connection_config_int/3 (conn, config_key, int_value)
+// ---------------------------------------------------------------------------
+
+static ERL_NIF_TERM nif_set_connection_config_int(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    unsigned int conn;
+    int config_key, value;
+    if (!enif_get_uint(env, argv[0], &conn))
+        return enif_make_badarg(env);
+    if (!enif_get_int(env, argv[1], &config_key))
+        return enif_make_badarg(env);
+    if (!enif_get_int(env, argv[2], &value))
+        return enif_make_badarg(env);
+
+    bool ok = SteamAPI_ISteamNetworkingUtils_SetConnectionConfigValueInt32(
+        get_utils(), conn, (ESteamNetworkingConfigValue)config_key, value);
+
+    return ok ? atom_ok : enif_make_tuple2(env, atom_error, enif_make_atom(env, "failed"));
+}
+
+// ---------------------------------------------------------------------------
+// NIF: set_connection_config_float/3 (conn, config_key, float_value)
+// ---------------------------------------------------------------------------
+
+static ERL_NIF_TERM nif_set_connection_config_float(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    unsigned int conn;
+    int config_key;
+    double value;
+    if (!enif_get_uint(env, argv[0], &conn))
+        return enif_make_badarg(env);
+    if (!enif_get_int(env, argv[1], &config_key))
+        return enif_make_badarg(env);
+    if (!enif_get_double(env, argv[2], &value))
+        return enif_make_badarg(env);
+
+    float f = (float)value;
+    bool ok = SteamAPI_ISteamNetworkingUtils_SetConnectionConfigValueFloat(
+        get_utils(), conn, (ESteamNetworkingConfigValue)config_key, f);
+
+    return ok ? atom_ok : enif_make_tuple2(env, atom_error, enif_make_atom(env, "failed"));
+}
+
+// ---------------------------------------------------------------------------
+// NIF: set_connection_config_string/3 (conn, config_key, string_value)
+// ---------------------------------------------------------------------------
+
+static ERL_NIF_TERM nif_set_connection_config_string(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    unsigned int conn;
+    int config_key;
+    char value[1024];
+    if (!enif_get_uint(env, argv[0], &conn))
+        return enif_make_badarg(env);
+    if (!enif_get_int(env, argv[1], &config_key))
+        return enif_make_badarg(env);
+    if (!enif_get_string(env, argv[2], value, sizeof(value), ERL_NIF_LATIN1))
+        return enif_make_badarg(env);
+
+    bool ok = SteamAPI_ISteamNetworkingUtils_SetConnectionConfigValueString(
+        get_utils(), conn, (ESteamNetworkingConfigValue)config_key, value);
+
+    return ok ? atom_ok : enif_make_tuple2(env, atom_error, enif_make_atom(env, "failed"));
+}
+
+// ---------------------------------------------------------------------------
+// NIF: get_config_value/3 (config_key, scope, scope_obj)
+//   scope: 1=Global, 3=ListenSocket, 4=Connection
+//   scope_obj: 0 for global, handle for connection/listen socket
+// ---------------------------------------------------------------------------
+
+static ERL_NIF_TERM nif_get_config_value(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    int config_key, scope;
+    unsigned int scope_obj;
+    if (!enif_get_int(env, argv[0], &config_key))
+        return enif_make_badarg(env);
+    if (!enif_get_int(env, argv[1], &scope))
+        return enif_make_badarg(env);
+    if (!enif_get_uint(env, argv[2], &scope_obj))
+        return enif_make_badarg(env);
+
+    ESteamNetworkingConfigDataType data_type;
+    char buf[4096];
+    size_t buf_size = sizeof(buf);
+
+    ESteamNetworkingGetConfigValueResult result = SteamAPI_ISteamNetworkingUtils_GetConfigValue(
+        get_utils(),
+        (ESteamNetworkingConfigValue)config_key,
+        (ESteamNetworkingConfigScope)scope,
+        (intptr_t)scope_obj,
+        &data_type,
+        buf,
+        &buf_size);
+
+    if (result == k_ESteamNetworkingGetConfigValue_BadValue)
+        return enif_make_tuple2(env, atom_error, enif_make_atom(env, "bad_value"));
+    if (result == k_ESteamNetworkingGetConfigValue_BadScopeObj)
+        return enif_make_tuple2(env, atom_error, enif_make_atom(env, "bad_scope_obj"));
+    if (result == k_ESteamNetworkingGetConfigValue_BufferTooSmall)
+        return enif_make_tuple2(env, atom_error, enif_make_atom(env, "buffer_too_small"));
+
+    ERL_NIF_TERM value_term;
+    bool inherited = (result == k_ESteamNetworkingGetConfigValue_OKInherited);
+
+    switch (data_type) {
+        case k_ESteamNetworkingConfig_Int32:
+            value_term = enif_make_int(env, *(int32_t *)buf);
+            break;
+        case k_ESteamNetworkingConfig_Int64:
+            value_term = enif_make_int64(env, *(int64_t *)buf);
+            break;
+        case k_ESteamNetworkingConfig_Float:
+            value_term = enif_make_double(env, (double)*(float *)buf);
+            break;
+        case k_ESteamNetworkingConfig_String:
+            value_term = enif_make_string(env, buf, ERL_NIF_LATIN1);
+            break;
+        default:
+            return enif_make_tuple2(env, atom_error, enif_make_atom(env, "unsupported_type"));
+    }
+
+    if (inherited)
+        return enif_make_tuple3(env, atom_ok, value_term, enif_make_atom(env, "inherited"));
+    else
+        return enif_make_tuple2(env, atom_ok, value_term);
+}
+
+// ---------------------------------------------------------------------------
 // NIF: create_socket_pair/1 (use_network_loopback)
 // ---------------------------------------------------------------------------
 
@@ -1571,6 +1696,10 @@ static ErlNifFunc nif_funcs[] = {
     {"set_global_config_int",              2, nif_set_global_config_int,              0},
     {"set_global_config_float",            2, nif_set_global_config_float,            0},
     {"set_global_config_string",           2, nif_set_global_config_string,           0},
+    {"set_connection_config_int",           3, nif_set_connection_config_int,          0},
+    {"set_connection_config_float",         3, nif_set_connection_config_float,        0},
+    {"set_connection_config_string",        3, nif_set_connection_config_string,       0},
+    {"get_config_value",                    3, nif_get_config_value,                   0},
     {"create_socket_pair",                  1, nif_create_socket_pair,                 0},
     {"get_identity",                        0, nif_get_identity,                       0},
     {"init_authentication",                 0, nif_init_authentication,                0},

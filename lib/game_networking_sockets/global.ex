@@ -204,6 +204,69 @@ defmodule GameNetworkingSockets.Global do
   end
 
   # ---------------------------------------------------------------------------
+  # Config Value Read
+  # ---------------------------------------------------------------------------
+
+  @config_scopes %{
+    global: 1,
+    listen_socket: 3,
+    connection: 4
+  }
+
+  @doc """
+  Return the map of config scope atoms to their integer enum values.
+  """
+  def config_scopes, do: @config_scopes
+
+  @doc """
+  Get a configuration value at the specified scope.
+
+  - `key` — config key atom or integer (see `config_keys/0`)
+  - `scope` — `:global`, `:listen_socket`, or `:connection` (or integer)
+  - `scope_obj` — 0 for global, or a connection/listen socket handle
+
+  Returns `{:ok, value}` if the value is set directly at this scope,
+  or `{:ok, value, :inherited}` if using a value inherited from a higher scope.
+
+  The value type is automatically determined — integers, floats, and strings
+  are returned as their native Elixir types.
+
+  ## Examples
+
+      # Read global default for send buffer size
+      {:ok, 524288} = Global.get_config_value(:send_buffer_size, :global, 0)
+
+      # Read effective value for a specific connection
+      {:ok, value} = Global.get_config_value(:nagle_time, :connection, conn)
+  """
+  def get_config_value(key, scope, scope_obj) when is_atom(key) and is_atom(scope) do
+    with {:ok, int_key} <- Map.fetch(@config_keys, key),
+         {:ok, int_scope} <- Map.fetch(@config_scopes, scope) do
+      Nif.get_config_value(int_key, int_scope, scope_obj)
+    else
+      :error -> {:error, :unknown_key_or_scope}
+    end
+  end
+
+  def get_config_value(key, scope, scope_obj) when is_integer(key) and is_integer(scope) do
+    Nif.get_config_value(key, scope, scope_obj)
+  end
+
+  def get_config_value(key, scope, scope_obj) when is_atom(key) and is_integer(scope) do
+    case Map.fetch(@config_keys, key) do
+      {:ok, int_key} -> Nif.get_config_value(int_key, scope, scope_obj)
+      :error -> {:error, :unknown_config_key}
+    end
+  end
+
+  def get_config_value(key, scope, scope_obj) when is_integer(key) and is_atom(scope) do
+    case Map.fetch(@config_scopes, scope) do
+      {:ok, int_scope} -> Nif.get_config_value(key, int_scope, scope_obj)
+      :error -> {:error, :unknown_scope}
+    end
+  end
+
+  # ---------------------------------------------------------------------------
   # Identity & Authentication
   # ---------------------------------------------------------------------------
 

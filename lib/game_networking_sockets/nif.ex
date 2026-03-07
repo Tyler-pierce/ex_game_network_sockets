@@ -60,6 +60,14 @@ defmodule GameNetworkingSockets.Nif do
   def set_global_config_float(_key, _value), do: :erlang.nif_error(:not_loaded)
   def set_global_config_string(_key, _value), do: :erlang.nif_error(:not_loaded)
 
+  # Per-connection config
+  def set_connection_config_int(_conn, _key, _value), do: :erlang.nif_error(:not_loaded)
+  def set_connection_config_float(_conn, _key, _value), do: :erlang.nif_error(:not_loaded)
+  def set_connection_config_string(_conn, _key, _value), do: :erlang.nif_error(:not_loaded)
+
+  # Config value read
+  def get_config_value(_key, _scope, _scope_obj), do: :erlang.nif_error(:not_loaded)
+
   # Socket pair
   def create_socket_pair(_use_network_loopback), do: :erlang.nif_error(:not_loaded)
 

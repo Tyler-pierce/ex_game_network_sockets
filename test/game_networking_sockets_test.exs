@@ -287,4 +287,77 @@ defmodule GameNetworkingSocketsTest do
     Socket.close_connection(c1)
     Socket.close_connection(c2)
   end
+
+  # ---------------------------------------------------------------------------
+  # Global get_config_value
+  # ---------------------------------------------------------------------------
+
+  test "get_config_value reads global defaults" do
+    assert {:ok, value} = Global.get_config_value(:send_buffer_size, :global, 0)
+    assert is_integer(value)
+    assert value > 0
+  end
+
+  test "get_config_value reads global float" do
+    # fake_packet_loss_send is a float config (default 0.0)
+    case Global.get_config_value(:fake_packet_loss_send, :global, 0) do
+      {:ok, val} -> assert is_float(val)
+      {:ok, val, :inherited} -> assert is_float(val)
+    end
+  end
+
+  test "get_config_value returns error for invalid key" do
+    assert {:error, :bad_value} = Global.get_config_value(999_999, 1, 0)
+  end
+
+  test "get_config_value returns error for unknown atom key" do
+    assert {:error, :unknown_key_or_scope} = Global.get_config_value(:bogus, :global, 0)
+  end
+
+  test "set then get global config roundtrip" do
+    :ok = Global.set_config_int(:fake_packet_lag_send, 50)
+    assert {:ok, 50} = Global.get_config_value(:fake_packet_lag_send, :global, 0)
+    # Reset
+    :ok = Global.set_config_int(:fake_packet_lag_send, 0)
+  end
+
+  # ---------------------------------------------------------------------------
+  # Per-connection config
+  # ---------------------------------------------------------------------------
+
+  test "set and get connection config int" do
+    {:ok, c1, c2} = Socket.create_socket_pair(false)
+    Global.poll_callbacks()
+
+    assert :ok = Connection.set_config_int(c1, :nagle_time, 0)
+    assert {:ok, 0} = Connection.get_config_value(c1, :nagle_time)
+
+    Socket.close_connection(c1)
+    Socket.close_connection(c2)
+  end
+
+  test "connection config inherits from global when not set" do
+    {:ok, c1, c2} = Socket.create_socket_pair(false)
+    Global.poll_callbacks()
+
+    # send_buffer_size should be inherited from global default
+    case Connection.get_config_value(c1, :send_buffer_size) do
+      {:ok, val} -> assert is_integer(val) and val > 0
+      {:ok, val, :inherited} -> assert is_integer(val) and val > 0
+    end
+
+    Socket.close_connection(c1)
+    Socket.close_connection(c2)
+  end
+
+  test "connection config rejects unknown atom key" do
+    {:ok, c1, c2} = Socket.create_socket_pair(false)
+    Global.poll_callbacks()
+
+    assert {:error, :unknown_config_key} = Connection.set_config_int(c1, :bogus, 0)
+    assert {:error, :unknown_config_key} = Connection.get_config_value(c1, :bogus)
+
+    Socket.close_connection(c1)
+    Socket.close_connection(c2)
+  end
 end
