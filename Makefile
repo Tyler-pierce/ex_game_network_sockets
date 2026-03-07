@@ -20,10 +20,21 @@ else
   GNS_LDFLAGS = -lGameNetworkingSockets
 endif
 
+# Set STEAMWORKS_SDK=1 to enable Steam Datagram types (relay tickets, hosted addresses, etc.)
+# Requires steamdatagram_tickets.h from the Steamworks SDK.
+STEAMWORKS_SDK ?=
+
+# Set STEAM_RELAY=1 to enable Steam Relay Network functions (ping locations,
+# data centers, relay status). These symbols are not exported by the open-source
+# GameNetworkingSockets build; they require the Steamworks redistrib.
+STEAM_RELAY ?=
+
 CXX = g++
 CXXFLAGS = -O2 -Wall -Wextra -Wno-unused-parameter -fPIC -shared -std=c++11 \
 	-I$(ERLANG_PATH) \
-	$(GNS_CFLAGS)
+	$(GNS_CFLAGS) \
+	$(if $(STEAMWORKS_SDK),-DHAS_STEAM_DATAGRAM_TYPES) \
+	$(if $(STEAM_RELAY),-DHAS_STEAM_RELAY_NETWORK)
 
 LDFLAGS = $(GNS_LDFLAGS)
 

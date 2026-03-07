@@ -5,7 +5,7 @@ defmodule GameNetworkingSockets.ExSocketManager.SocketServer do
   alias GameNetworkingSockets.ExSocketManager.Struct.SocketServerState, as: SSS
   alias GameNetworkingSockets.Socket
 
-  @default_msgs_per_poll 2000
+  @default_msgs_per_poll 10_000
 
   def start_link([], opts) do
     GenServer.start_link(

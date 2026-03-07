@@ -62,13 +62,53 @@ defmodule GameNetworkingSockets.Connection do
   end
 
   @doc """
+  Get user data previously set on a connection.
+
+  Returns the int64 user data value. Returns -1 if the connection
+  is invalid or user data was never set (default is -1).
+  """
+  def get_user_data(conn) do
+    Nif.get_connection_user_data(conn)
+  end
+
+  @doc """
+  Get a detailed human-readable text dump of connection status and statistics.
+
+  Returns `{:ok, status_string}` or `{:error, reason}`.
+
+  Useful for debugging — the output includes ping, throughput, packet loss,
+  and other diagnostic information.
+  """
+  def get_detailed_status(conn) do
+    Nif.get_detailed_connection_status(conn)
+  end
+
+  @doc """
+  Set a debug name for a connection.
+
+  This name appears in debug output and `get_info/1` connection descriptions.
+  """
+  def set_name(conn, name) when is_binary(name) do
+    Nif.set_connection_name(conn, String.to_charlist(name))
+  end
+
+  @doc """
+  Get the debug name of a connection.
+
+  Returns `{:ok, name_string}` or `{:error, reason}`.
+  """
+  def get_name(conn) do
+    Nif.get_connection_name(conn)
+  end
+
+  @doc """
   Configure connection lanes for priority/weighted message sending.
 
   `lanes` is a list of `{priority, weight}` tuples.
   """
   def configure_lanes(conn, lanes) when is_list(lanes) do
     {priorities, weights} = Enum.unzip(lanes)
-    
+
     Nif.configure_connection_lanes(conn, priorities, weights)
   end
 end

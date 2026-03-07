@@ -1,4 +1,4 @@
-# Basic example to play with GameNetworkingSockets
+# Basic example to play with GameNetworkingSockets without much management
 alias GameNetworkingSockets.{Global, Socket}
 
 port = 27015

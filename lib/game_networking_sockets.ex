@@ -96,6 +96,8 @@ defmodule GameNetworkingSockets do
     {:ok, pid}
   end
 
+  defp client_added({:error, _} = error), do: error
+
   defp maybe_generate_name(opts, nil) do
     # TODO: will replace rand with global Registry
     Keyword.put(opts, :name, :"client_#{:rand.uniform(100000)}")

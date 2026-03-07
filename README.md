@@ -1,6 +1,17 @@
 # GameNetworkingSockets
 
-**TODO: Add description**
+High level wrapper for Valve's GameNetworkingSockets.
+
+
+
+Libraries:
+
+gns-sys is the C++ library from Valve compiled with bindings generated (the library is directly compiled by cargo so you don't need to have it already installed).
+gns is the high level, type-safe Rust wrapper.
+
+Inspiration:
+
+(Rust GameNetworkingSockets Wrapper)[https://github.com/hussein-aitlahcen/gns-rs]
 
 ## Installation
 

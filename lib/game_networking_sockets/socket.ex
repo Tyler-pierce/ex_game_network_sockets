@@ -156,4 +156,55 @@ defmodule GameNetworkingSockets.Socket do
   def receive_messages_on_poll_group(poll_group, max \\ 100) do
     Nif.receive_messages_on_poll_group(poll_group, max)
   end
+
+  @doc """
+  Get the bound address of a listen socket.
+
+  Returns `{:ok, %{address: ip_string, port: port}}` or `{:error, reason}`.
+  """
+  def get_listen_socket_address(listen_socket) do
+    Nif.get_listen_socket_address(listen_socket)
+  end
+
+  @doc """
+  Send multiple messages atomically in a single batch call.
+
+  `messages` is a list of tuples:
+  - `{conn, data, flags}` — send `data` (binary) to `conn` with `flags`
+  - `{conn, data, flags, lane}` — same, on a specific lane index
+
+  Returns a list of `{:ok, message_number}` or `{:error, result_code}`
+  in the same order as the input.
+
+  This is more efficient than calling `send/3` in a loop when sending
+  many messages per tick.
+
+  ## Example
+
+      results = Socket.send_messages([
+        {conn1, "hello", Socket.send_reliable()},
+        {conn2, "world", Socket.send_unreliable()}
+      ])
+  """
+  def send_messages(messages) when is_list(messages) do
+    Nif.send_messages(messages)
+  end
+
+  @doc """
+  Create a pair of connected sockets for in-process communication.
+
+  Useful for testing and loopback scenarios. When `use_network_loopback`
+  is `true`, traffic goes through the network stack (slower but more
+  realistic). When `false`, messages are passed directly in-process.
+
+  Returns `{:ok, conn1, conn2}` or `{:error, reason}`.
+
+  ## Example
+
+      {:ok, conn1, conn2} = Socket.create_socket_pair(false)
+      Socket.send(conn1, "ping", Socket.send_reliable())
+  """
+  def create_socket_pair(use_network_loopback \\ false) do
+    Nif.create_socket_pair(use_network_loopback)
+  end
 end
