@@ -23,7 +23,8 @@ defmodule GameNetworkingSockets.ExSocketManager.SocketServer do
       name: Keyword.fetch!(opts, :name),
       ip: Keyword.fetch!(opts, :ip),
       port: Keyword.fetch!(opts, :port),
-      poll: Keyword.fetch!(opts, :poll)
+      poll: Keyword.fetch!(opts, :poll),
+      handle_poll: Keyword.get(opts, :handle_poll)
     }
   end
 
@@ -58,7 +59,9 @@ defmodule GameNetworkingSockets.ExSocketManager.SocketServer do
   # PRIVATE FUNCTIONS
   ###################
   defp poll_connection(%{server: %{poll_group: poll_group}, clients_connected: clients_connected} = state) do
-    Global.poll_connection_status_changes()
+    changes = Global.poll_connection_status_changes()
+
+    changes
     |> Enum.reduce(state, fn event, state ->
       case {event.old_state, event.new_state} do
         {0, 1} -> # New incoming connection — accept it
@@ -81,19 +84,26 @@ defmodule GameNetworkingSockets.ExSocketManager.SocketServer do
           state
       end
     end)
-    |> process_messages(Socket.receive_messages_on_poll_group(poll_group, @default_msgs_per_poll), 0)
+    |> connection_status_changes_handler(changes)
+    |> messages_handler(Socket.receive_messages_on_poll_group(poll_group, @default_msgs_per_poll))
   end
 
-  defp process_messages(%{messages_received: received} = state, [], amt_processed) do
-    Map.put(state, :messages_received, received + amt_processed)
+  defp connection_status_changes_handler(%SSS{handle_poll: nil} = state, _), do: state
+
+  defp connection_status_changes_handler(%SSS{handle_poll: handler} = state, changes) do
+    handler.connection_status_changes(changes)
+
+    state
   end
 
-  defp process_messages(state, [_msg | t], amt_processed) do
-    # Do something with message (TODO: state can have handler added)
+  defp messages_handler(%SSS{handle_poll: nil} = state, _), do: state
 
-    process_messages(state, t, amt_processed + 1)
+  defp messages_handler(%SSS{handle_poll: handler} = state, msgs) do
+    handler.messages(msgs)
+
+    state
   end
-  
+
   defp noreply(state), do: {:noreply, state}
 
   defp schedule_poll(%{poll: poll} = state) do

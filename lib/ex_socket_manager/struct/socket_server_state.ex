@@ -9,5 +9,6 @@ defmodule GameNetworkingSockets.ExSocketManager.Struct.SocketServerState do
     port: nil,
     poll: nil,
     clients_connected: 0,
-    messages_received: 0
+    messages_received: 0,
+    handle_poll: nil
 end

@@ -35,12 +35,18 @@ defmodule GameNetworkingSockets do
   - `GameNetworkingSockets.Nif` — raw NIF bindings (internal)
   """
   alias GameNetworkingSockets.ExSocketManager.{
+          ExampleServerPollPuts,
           ClientSupervisor,
           SocketSupervisor,
           ObserverService
         }
 
-  @default_server_opts name: :socket_server, poll: 500, ip: "0.0.0.0", port: 27015
+  @default_server_opts name: :socket_server, 
+    poll: 500,
+    ip: "0.0.0.0",
+    port: 27015,
+    handle_poll: ExampleServerPollPuts
+     
   @default_client_opts poll: 500, ip: "127.0.0.1", port: 27015
 
   @doc """
