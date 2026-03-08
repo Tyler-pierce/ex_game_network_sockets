@@ -8,7 +8,7 @@ GNS is made available through NIF calls to their C interface.
 
 **Inspiration:**
 
-(Rust GameNetworkingSockets Wrapper)[https://github.com/hussein-aitlahcen/gns-rs]
+[Rust GameNetworkingSockets Wrapper](https://github.com/hussein-aitlahcen/gns-rs)
 
 ## Installation
 
