@@ -11,7 +11,7 @@ defmodule GameNetworkingSockets.ExSocketManager.ObserverService do
   alias GameNetworkingSockets.ExSocketManager.Struct.SocketServerState, as: SSS
   alias GameNetworkingSockets.ExSocketManager.Struct.SocketClientState, as: SCS
 
-  @default_tick :timer.seconds(5)
+  @default_tick :timer.seconds(1)
   @server_fields [:server, :ip, :port]
   @client_fields [:name, :conn, :ip, :port]
 
@@ -34,13 +34,7 @@ defmodule GameNetworkingSockets.ExSocketManager.ObserverService do
   def init(_) do
     :timer.send_after(@default_tick, :tick)
 
-    {
-      :ok,
-      %SOS{}
-      |> update_nodes()
-      |> find_servers()
-      |> find_clients()
-    }
+    {:ok, update_nodes(%SOS{})}
   end
 
   @impl true
@@ -128,7 +122,23 @@ defmodule GameNetworkingSockets.ExSocketManager.ObserverService do
      end)
   end
 
-  defp update_nodes(%{nodes: nodes} = observer) do
-    nodes()
+  defp update_nodes(%{nodes: nodes} = state) do
+    nodes_now = nodes()
+    cond do
+      length(nodes_now) < length(nodes) ->
+        # Node down event.
+        state
+        |> Map.put(:nodes, nodes_now)
+        |> find_servers()
+        |> find_clients()
+
+      length(nodes_now) > length(nodes) ->
+        # Node added event!
+        Map.put(state, :nodes, nodes_now)
+
+      true ->
+        # No changes
+        state
+    end
   end
 end
