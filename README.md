@@ -61,19 +61,19 @@ flowchart TD
       S1[Global Server Listings PIDS/Data]
       C1[Global Client Listings PIDS/Data]
     end
+    
+    S1a --> C1a
+    S1a --> C1b
+    S1b --> C1c
+    S1b --> C1d
+
+    S2a --> C2a
+    S2a --> C2b
+    S2a --> C2c
+
+    Observer --> Machine1
+    Observer --> Machine2
   end
-
-  S1a --> C1a
-  S1a --> C1b
-  S1b --> C1c
-  S1b --> C1d
-
-  S2a --> C2a
-  S2a --> C2b
-  S2a --> C2c
-
-  Observer --> Machine1
-  Observer --> Machine2
 
 Note for polling GenServers fastest rate in this system would be per/1millisecond.
 
