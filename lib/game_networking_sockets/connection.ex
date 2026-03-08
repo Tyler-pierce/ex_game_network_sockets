@@ -104,12 +104,19 @@ defmodule GameNetworkingSockets.Connection do
   @doc """
   Configure connection lanes for priority/weighted message sending.
 
-  `lanes` is a list of `{priority, weight}` tuples.
+  `lanes` is a list of `{priority, weight}` tuples. A priority of 0
+  is lowest priority and higher numbers are highest priority.
+
+  A maximum of 255 lanes can be configured on a connection but for
+  performance a lower number is recommended (generally max 8).
+
+  The index of the lanes is the index of the passed list, so to use
+  the first configured lane, pass 0 to a messages call.
   """
   def configure_lanes(conn, lanes) when is_list(lanes) do
     {priorities, weights} = Enum.unzip(lanes)
 
-    Nif.configure_connection_lanes(conn, priorities, weights)
+    {Nif.configure_connection_lanes(conn, priorities, weights), lanes}
   end
 
   # ---------------------------------------------------------------------------

@@ -14,14 +14,15 @@ defmodule GameNetworkingSockets.ExSocketManager.ClientServer do
   end
 
   @doc """
-  Create initial state struct of socket server
+  Create initial state struct of socket server.
   """
   def to_state(opts) do
     %SCS{
       name: Keyword.fetch!(opts, :name),
       ip: Keyword.fetch!(opts, :ip),
       port: Keyword.fetch!(opts, :port),
-      poll: Keyword.fetch!(opts, :poll)
+      poll: Keyword.fetch!(opts, :poll),
+      lanes: Keyword.get(opts, :lanes, [])
     }
   end
 
@@ -29,11 +30,16 @@ defmodule GameNetworkingSockets.ExSocketManager.ClientServer do
   def init(%SCS{ip: ip, port: port, poll: poll} = state) do
     Global.init!()
 
-    {:ok, conn} = GameNetworkingSockets.Socket.connect(ip, port)
+    {:ok, conn} = Socket.connect(ip, port)
 
     :timer.send_after(poll, :poll)
 
-    {:ok, Map.put(state, :conn, conn)}
+    {
+      :ok, 
+      state
+      |> Map.put(:conn, conn)
+      |> configure_lanes()
+    }
   end
 
   @impl true
@@ -74,4 +80,11 @@ defmodule GameNetworkingSockets.ExSocketManager.ClientServer do
 
   # PRIVATE FUNCTIONS
   ###################
+  defp configure_lanes(%{lanes: []} = state), do: state
+
+  defp configure_lanes(%{lanes: lanes} = state) do
+    {:ok, _lanes} = Connection.configure_lanes(state.conn, lanes)
+
+    state
+  end
 end

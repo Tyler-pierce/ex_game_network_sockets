@@ -9,5 +9,6 @@ defmodule GameNetworkingSockets.ExSocketManager.Struct.SocketClientState do
     port: nil,
     poll: nil,
     sent: 0,
-    received: 0
+    received: 0,
+    lanes: []
 end
