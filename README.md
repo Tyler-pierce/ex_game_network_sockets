@@ -39,8 +39,9 @@ Another flavor of management over a performant gaming inspired network. The [C#,
 
 All GNS Servers & Clients poll per their set rates (1 GenServer/BEAM process per GNS Server or Client), the Observer(s) are registered globally to the cluster and can fascilitate moving clients to a machine with an assigned server for example or emiting metrics and stats:
 
+```mermaid
 flowchart TD
-  subgraph BEAM CLUSTER
+  subgraph BEAM_CLUSTER["BEAM CLUSTER"]
     subgraph Machine1
       S1a[GNS Server]
       S1b[GNS Server]
@@ -61,7 +62,7 @@ flowchart TD
       S1[Global Server Listings PIDS/Data]
       C1[Global Client Listings PIDS/Data]
     end
-    
+
     S1a --> C1a
     S1a --> C1b
     S1b --> C1c
@@ -74,6 +75,7 @@ flowchart TD
     Observer --> Machine1
     Observer --> Machine2
   end
+```
 
 Note for polling GenServers fastest rate in this system would be per/1millisecond.
 
