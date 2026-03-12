@@ -3,6 +3,7 @@ defmodule GameNetworkingSockets.ExSocketManager.SocketServer do
 
   alias GameNetworkingSockets.Global
   alias GameNetworkingSockets.ExSocketManager.Struct.SocketServerState, as: SSS
+  alias GameNetworkingSockets.ExSocketManager.Struct.{ConnectionChange, Message}
   alias GameNetworkingSockets.Socket
 
   @default_msgs_per_poll 10_000
@@ -91,17 +92,21 @@ defmodule GameNetworkingSockets.ExSocketManager.SocketServer do
   defp connection_status_changes_handler(%SSS{handle_poll: nil} = state, _), do: state
 
   defp connection_status_changes_handler(%SSS{handle_poll: handler} = state, changes) do
-    handler.connection_status_changes(changes)
+    changes
+    |> Enum.map(&struct(ConnectionChange, &1))
+    |> handler.connection_status_changes()
 
     state
   end
 
   defp messages_handler(%SSS{handle_poll: nil} = state, _), do: state
 
-  defp messages_handler(%SSS{handle_poll: handler} = state, msgs) do
-    handler.messages(msgs)
+  defp messages_handler(%SSS{handle_poll: handler, messages_received: received} = state, msgs) do
+    msgs
+    |> Enum.map(&struct(Message, &1))
+    |> handler.messages()
 
-    state
+    Map.put(state, :messages_received, received + length(msgs))
   end
 
   defp noreply(state), do: {:noreply, state}

@@ -97,6 +97,8 @@ defmodule GameNetworkingSockets do
     {:ok, pid}
   end
 
+  defp server_added({:error, _} = error), do: error
+
   defp client_added({:ok, pid}) do
     observer_pid = lookup_or_start_observer()
 

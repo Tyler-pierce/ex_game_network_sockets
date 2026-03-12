@@ -79,7 +79,7 @@ flowchart TD
 
 Note for polling GenServers fastest rate in this system would be per/1millisecond.
 
-This library currency defines a simple libcluster topology for simulating a cluster of 4 machines locally but it can be replaced with [any of their topologies](https://hexdocs.pm/libcluster/readme.html#clustering).
+This library currently defines a simple libcluster topology for simulating a cluster of 4 machines locally but it can be replaced with [any of their topologies](https://hexdocs.pm/libcluster/readme.html#clustering).
 
 ## Included Example Scripts
 

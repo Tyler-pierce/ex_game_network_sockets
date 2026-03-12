@@ -13,7 +13,12 @@ amount_ports = length(ports)
 
 server_pids = 
   Enum.map(ports, fn port ->
-    {:ok, pid} = GameNetworkingSockets.start_server(name: :"server_#{port}", port: port, poll: 1)
+    {:ok, pid} = GameNetworkingSockets.start_server(
+                   name: :"server_#{port}",
+                   port: port,
+                   poll: 1,
+                   handle_poll: GameNetworkingSockets.ExSocketManager.ExampleServerPollNoop
+                 )
     
     pid
   end)
